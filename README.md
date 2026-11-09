@@ -143,7 +143,7 @@ AG_GRID_LICENSE_KEY=...    # must include AI
 
 The auditor cannot approve, deny or pay: its tool set has no such tool (see T34 and T35 in the threat model). Product text it reads is untrusted and the instructions say so.
 
-Studio ships no LLM adapter. `studio/src/openaiAdapter.ts` is the example adapter from the AG Studio docs, used as a starting point; it speaks the OpenAI Responses API, which the relay forwards to `LLM_BASE_URL`. Set the model id in `studio/src/ai.ts` to one your provider offers. The chat panel works from the built app at `/studio/`, not from `npm run dev` (the relay only accepts requests whose Host and Origin are the dashboard server itself).
+Studio ships no LLM adapter. `studio/src/openaiAdapter.ts` is the example adapter from the AG Studio docs, used as a starting point; it speaks the OpenAI Responses API, which the relay forwards to `LLM_BASE_URL`. Set the model id in `studio/src/ai.ts` to one your provider offers. The chat panel works from the built app at `/studio/`, not from `npm run dev` (the relay only accepts requests whose Host and Origin are the dashboard server itself). It lets users build and edit dashboard widgets in natural language, backed by Studio’s built-in agents plus a custom auditor agent with read-only data tools and no approval or payment tools.
 
 ### Optional: AG Grid Enterprise features
 
