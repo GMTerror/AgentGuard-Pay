@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AgentGuard control panel</title>
+  <link rel="stylesheet" href="vendor/ag-grid.min.css">
+  <link rel="stylesheet" href="vendor/ag-theme-quartz.min.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <h1>AgentGuard</h1>
+      <p>Everything your agent tries to do with money, as it happens</p>
+    </div>
+    <div class="top-right">
+      <span id="chain" class="badge neutral" title="Each log entry carries the hash of the one before it">Checking log</span>
+      <label class="select"><span class="sr">Session</span>
+        <select id="session"><option value="auto">Newest session</option></select>
+      </label>
+      <button id="pause" class="btn" type="button">Pause</button>
+      <span id="live" class="live" role="status" aria-live="polite"><i class="dot"></i><span id="live-text">Connecting</span></span>
+    </div>
+  </header>
+
+  <main>
+    <section class="ledger" aria-label="Summary">
+      <div class="stat">
+        <span class="stat-label">Paid out</span>
+        <span id="k-paid" class="stat-num">0.00</span>
+        <span id="k-limit" class="stat-note">No limit recorded</span>
+        <div class="bar" id="k-bar" hidden><i id="k-bar-fill"></i></div>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Blocked by the gate</span>
+        <span id="k-blocked" class="stat-num">0</span>
+        <span class="stat-note">Orders refused</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Waiting for you</span>
+        <span id="k-waiting" class="stat-num">0</span>
+        <span class="stat-note">Approvals not answered</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Events logged</span>
+        <span id="k-events" class="stat-num">0</span>
+        <span id="k-merchants" class="stat-note"></span>
+      </div>
+    </section>
+
+    <section class="risk" aria-label="Session risk">
+      <div class="risk-head">
+        <h2>Session risk</h2>
+        <span id="risk-level" class="level ok">Normal</span>
+        <span id="risk-value" class="risk-value">0.00</span>
+      </div>
+      <div class="gate" role="img" id="gate" aria-label="Risk 0.00 of 3.5">
+        <div class="zone z-ok"></div><div class="zone z-warn"></div><div class="zone z-block"></div>
+        <div id="marker" class="marker"></div>
+      </div>
+      <div class="gate-labels">
+        <span class="gl ok">Normal</span><span class="gl warn">Approvals required</span><span class="gl block">Read-only</span>
+      </div>
+    </section>
+
+    <section class="events" aria-label="Details">
+      <div class="tabs" role="tablist" aria-label="Views">
+        <button id="tab-activity" class="tab" role="tab" aria-selected="true" aria-controls="panel-activity" type="button">Activity</button>
+        <button id="tab-products" class="tab" role="tab" aria-selected="false" aria-controls="panel-products" type="button">Products seen <span id="c-products">0</span></button>
+        <button id="tab-charts" class="tab" role="tab" aria-selected="false" aria-controls="panel-charts" type="button">Charts</button>
+        <span id="edition" class="edition"></span>
+      </div>
+
+      <div id="panel-activity" class="panel" role="tabpanel" aria-labelledby="tab-activity">
+        <div class="toolbar">
+          <div class="chips" role="group" aria-label="Filter events">
+            <button class="chip" data-filter="all" aria-pressed="true" type="button">All <span id="c-all">0</span></button>
+            <button class="chip" data-filter="paid" aria-pressed="false" type="button">Paid <span id="c-paid">0</span></button>
+            <button class="chip" data-filter="waiting" aria-pressed="false" type="button">Waiting <span id="c-waiting">0</span></button>
+            <button class="chip" data-filter="blocked" aria-pressed="false" type="button">Blocked <span id="c-blocked">0</span></button>
+            <button class="chip" data-filter="errors" aria-pressed="false" type="button">Errors <span id="c-errors">0</span></button>
+          </div>
+          <input id="search" type="search" placeholder="Search events" aria-label="Search events">
+          <label class="check"><input id="follow" type="checkbox" checked> Show newest</label>
+        </div>
+        <div class="workspace">
+          <div id="grid" class="ag-theme-quartz"></div>
+          <aside id="detail" class="detail" aria-label="Event details" hidden>
+            <div class="detail-head"><h3 id="detail-title">Event</h3><button id="detail-close" class="btn" type="button">Close</button></div>
+            <pre id="detail-json"></pre>
+          </aside>
+        </div>
+      </div>
+
+      <div id="panel-products" class="panel" role="tabpanel" aria-labelledby="tab-products" hidden>
+        <div id="products-grid" class="ag-theme-quartz"></div>
+      </div>
+
+      <div id="panel-charts" class="panel" role="tabpanel" aria-labelledby="tab-charts" hidden>
+        <div class="charts">
+          <figure class="wide"><figcaption>Risk over time</figcaption><div id="chart-risk" class="chart"></div></figure>
+          <figure><figcaption>What the gate decided</figcaption><div id="chart-mix" class="chart"></div></figure>
+          <figure><figcaption>Paid out over time</figcaption><div id="chart-spend" class="chart"></div></figure>
+        </div>
+        <p id="chart-note" class="note" hidden></p>
+      </div>
+    </section>
+  </main>
+
+  <script src="logic.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

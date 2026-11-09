@@ -1,0 +1,44 @@
+# --- Secrets (never commit) ---
+.env
+.env.*
+!.env.example
+studio/.env.local
+*.pem
+*.key
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+build/
+dist/
+
+# --- Node / AG Studio ---
+studio/node_modules/
+studio/dist/
+node_modules/
+npm-debug.log*
+*.tsbuildinfo
+
+# --- Project-specific ---
+demo_out/
+audit.jsonl
+dashboard/static/vendor-enterprise/   # AG Grid Enterprise is commercial, not redistributable
+
+# --- OS / editor ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# --- Misc ---
+*.log
+*.zip
