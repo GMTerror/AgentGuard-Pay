@@ -81,7 +81,7 @@ dl{margin:0 0 22px;border-top:1px solid var(--line)}
 dt{color:var(--muted)}
 dd{margin:0;text-align:right;font-weight:600;word-break:break-all}
 dd.total{font-size:22px}
-.why{font-weight:500}
+.why{font-weight:500, text-transform:capitalize}
 .badge{display:inline-block;padding:2px 10px;border-radius:999px;font-size:13px;font-weight:700;
 text-transform:capitalize;color:#fff;background:var(--muted)}
 .badge.pending{background:var(--warn)}.badge.approved{background:var(--ok)}
@@ -219,7 +219,7 @@ class _Handler(BaseHTTPRequestHandler):
                 f"<h1>Approve payment?</h1>{items}<dl>{merchant_row}"
                 f'<div class="row"><dt>Order</dt><dd>{e["order_id"]}</dd></div>'
                 f'<div class="row"><dt>Total</dt><dd class="total">{e["total"]}</dd></div>'
-                f'<div class="row"><dt>Why</dt><dd class="why">{e["reason"].title()}</dd></div>'
+                f'<div class="row"><dt>Why</dt><dd class="why">{e["reason"]}</dd></div>'
                 f'<div class="row"><dt>Status</dt><dd><span class="badge {e["status"]}">{e["status"]}</span></dd></div>'
                 f'</dl>{buttons}<p class="note">{note}</p>',
             ),

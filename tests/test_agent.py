@@ -137,7 +137,7 @@ def test_groq_request_and_parse():
     }
     assert (
         body["tools"][0]["type"] == "function"
-        and body["model"] == "llama-3.3-70b-versatile"
+        and body["model"] == "gpt-oss-20b"
     )
 
 
