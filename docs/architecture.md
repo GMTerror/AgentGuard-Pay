@@ -48,7 +48,7 @@ What is trusted for what:
 |---|---|---|
 | Spending limit, merchants, expiry | Signed mandate | Trusted once the signature, expiry, session and nonce check out |
 | Price, merchant, currency of an item | Server-side snapshot of an offer the agent was shown (Channel3 or static catalog) | Trusted by the gate, for 15 minutes; Channel3's accuracy is itself trusted |
-| Names and descriptions | Catalog (merchant written) | **Untrusted**: shown to the LLM and scanned by the risk score, never used for a decision |
+| Names, descriptions and images | Catalog (merchant written) | **Untrusted**: shown to the LLM and scanned by the risk score, never used for a decision. Names and images are also displayed to the user on the approval page, escaped, with https images only; the merchant, price, quantity and total shown there come from the gateway's own snapshot. |
 | Item ids, quantities | LLM | Untrusted input, validated |
 | Final total | Recomputed by the gate, then read back from PayPal at capture | Trusted |
 | Step-up approval | User's out-of-band channel | Trusted; the agent has no tool to reach it |
@@ -63,11 +63,11 @@ What is trusted for what:
 | `catalog.py` | `Channel3Catalog` (calls `/v1/search`, keeps up to 3 cheapest in-stock offers per product in the mandate currency, item id `<product_id>@<domain>`, snapshot with TTL) and `StaticCatalog` for the offline demos. `.get(item_id)` is what the gate trusts. |
 | `risk.py` | `RiskEngine`: cumulative session risk (below). |
 | `semantic.py` | `IntentTracker` compares each item name with the user's own messages by cosine similarity (floor 0.30) and returns a drift score in [0, 1]. `MiniLM` is the real embedder (sentence-transformers, all-MiniLM-L6-v2); `ToyEmbedder` is a word-overlap stand-in for the offline demos and tests. It only feeds the risk score; the gate still decides. |
-| `stepup.py` | `StepUpManager` (request, approve, deny, expiry; single decision) plus a localhost-only approval page. |
+| `stepup.py` | `StepUpManager` (request, approve, deny, expiry; single decision) plus a localhost-only approval page that shows what is being approved: items with pictures, merchant, prices, quantities, total and the reason. |
 | `audit.py` | Append-only JSONL, each entry carries the SHA-256 of the previous one. `verify_log` detects edits and deletions. |
 | `paypal_client.py` | Orders v2: create (optionally saving the buyer's PayPal), get, capture, and `charge_saved` for auto-pay. Sandbox URL only. Idempotency keys. Errors carry PayPal's `debug_id`. |
-| `gateway.py` | Orchestrates the above. The only thing the agent can call. |
-| `agent.py` | Model-agnostic tool-calling loop and the Groq (GPT) adapter. |
+| `gateway.py` | Orchestrates the above. The only thing the agent can call. Builds the step-up line items from its own catalog snapshot. |
+| `agent.py` | Model-agnostic tool-calling loop and the Groq adapter. |
 | `dashboard/llm_proxy.py` | Relay for the Studio chat panel's model calls (`POST /api/llm`). Off unless `LLM_API_KEY` is set; localhost only, Host and Origin must match, `/responses` and `/chat/completions` only, 2 MB body cap, provider key added server-side. |
 
 ## Request flow
@@ -93,7 +93,7 @@ sequenceDiagram
     G->>P: get order (status, total, currency)
     G->>K: check_capture(order, total PayPal reports)
     alt step-up required and not yet approved
-        G->>U: approval request
+        G->>U: approval request (items, merchant, total)
         G-->>L: pending_step_up
         U->>G: approve (out of band)
         L->>G: capture_order(order_id)
@@ -147,7 +147,7 @@ These constants are placeholders to be tuned (see [experiments.md](experiments.m
 
 ## Step-up approval
 
-`StepUpManager.request` issues an unguessable id (UUID4) with a 300 s expiry and calls an optional `notify` callback (the hook for a push notification or webhook). `serve()` exposes a localhost page: `GET /r/<id>` shows the request, `POST /approve/<id>` and `/deny/<id>` decide it. Each request accepts exactly one decision. The agent's tool set contains no function that reaches `approve` or `deny`.
+`StepUpManager.request` issues an unguessable id (UUID4) with a 300 s expiry and calls an optional `notify` callback (the hook for a push notification or webhook). `serve()` exposes a localhost page: `GET /r/<id>` shows the request, `POST /approve/<id>` and `/deny/<id>` decide it. Each request accepts exactly one decision. The agent's tool set contains no function that reaches `approve` or `deny`. A request can carry line items (name, merchant, price, currency, quantity, image) that the gateway builds from its catalog snapshot at order time, never from the agent. The page escapes all merchant-written text, accepts only `https://` images (anything else becomes a letter placeholder), loads images with `no-referrer`, and sends headers that forbid framing and restrict images to https, so another page cannot trick the user into clicking Approve.
 
 ## Dashboard
 
@@ -157,7 +157,7 @@ These constants are placeholders to be tuned (see [experiments.md](experiments.m
 
 `studio/` is a React + Vite app on AG Studio. `src/logs.ts` polls `/api/logs`, keeps the events and the list of audit files in a small store (a **Session** dropdown in the top bar switches between files, or follows the newest); `src/tables.ts` turns them into six tables (events, gate decisions, payments, risk, products seen, summary) that `src/data.ts` hands to Studio's data engine with explicit field formats. `src/state.ts` is the pre-built report (two pages on a 24-track grid) that references fields as `<table>.<field>`. Three custom widgets in `src/widgets.tsx` (risk gate, product gallery, approval queue) read the same live store, so they update with the built-in widgets. The built app is served by the Python server at `/studio/`; the license key comes from `/api/config`.
 
-**Agent Framework.** `src/ai.ts` configures Studio's chat panel: the five built-in agents (Lead, Planning, Data, Page, Widget) plus a custom `auditor` agent that explains gate decisions from the audit tables and builds widgets. Its tool set is the read tools plus `addWidget`; nothing in it reaches approvals, payments or the mandate. The model call goes through `dashboard/llm_proxy.py` (`POST /api/llm`), which adds the provider key server-side, accepts only `/responses` and `/chat/completions`, requires a matching Host and Origin, caps the body at 2 MB, and is off unless `LLM_API_KEY` is set. The auditor reads the same audit log that contains untrusted product text, so its instructions treat table text as data; the control that matters is the missing tools, not the instruction.
+**Agent Framework.** `src/ai.ts` configures Studio's chat panel: the five built-in agents (Lead, Planning, Data, Page, Widget) plus a custom `auditor` agent with read-only data tools that can answer questions about the audit tables and add widgets Its tool set is the read tools plus `addWidget`; nothing in it reaches approvals, payments or the mandate. The model call goes through `dashboard/llm_proxy.py` (`POST /api/llm`), which adds the provider key server-side, accepts only `/responses` and `/chat/completions`, requires a matching Host and Origin, caps the body at 2 MB, and is off unless `LLM_API_KEY` is set. The auditor reads the same audit log that contains untrusted product text, so its instructions treat table text as data; the control that matters is the missing tools, not the instruction.
 
 ## Audit log
 
@@ -179,6 +179,6 @@ One JSON object per line: `ts`, `event`, `data`, `prev`, `hash`. Events: `sessio
 | Gateway and agent share a process | Gateway holds PayPal credentials inside a TEE with remote attestation; credentials released only to a binary with a known measurement |
 | `dict` of public keys | Key registration, rotation and revocation; hardware-backed user keys (passkeys) |
 | In-memory nonce set | Durable nonce store shared across gateway instances |
-| Localhost approval page | Push notification with WebAuthn, showing merchant and items |
+| Localhost approval page (shows items, merchant and total; no login) | Push notification with WebAuthn confirmation |
 | Fixed phrase list | Learned or ensemble scoring, evaluated against a benchmark |
 | Audit file on disk | Head hash anchored externally, so rewriting the whole chain is detectable |

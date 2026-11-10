@@ -103,7 +103,7 @@ class Agent:
 
 
 class GroqLlm:
-    """Groq (OpenAI-compatible chat completions) with a Llama model, free tier.
+    """Groq (OpenAI-compatible chat completions) with a GPT-OSS 20B model, free tier.
     The model lineup changes over time: set GROQ_MODEL or pass model= to override."""
 
     URL = "https://api.groq.com/openai/v1/chat/completions"
@@ -113,7 +113,7 @@ class GroqLlm:
     def __init__(
         self,
         api_key: str,
-        model: str = "llama-3.3-70b-versatile",
+        model: str = "gpt-oss-20b",
         session=None,
         retries: int = 1,
         rate_limit_retries: int = 2,

@@ -19,7 +19,7 @@ Every payment action goes through one gateway. The model is untrusted; the gatew
 | **Policy gate** (`policy.py`) | The agent only names item ids and quantities. Price, merchant and total are recomputed from a trusted catalog and checked against the mandate before the PayPal order is created, and again before capture (against the total PayPal reports). Cumulative spend is capped. |
 | **Cumulative risk score** (`risk.py`) | A session risk score `r_t = γ·r_{t-1} + S_turn + S_drift + S_sem` (γ = 0.8) that decays over time and accumulates weak signals across turns: injection phrases in untrusted text, pressure on the mandate boundary, and semantic drift from what you asked for. Warn at 1.0 forces user approval; block at 2.5 makes the session read-only. |
 | **Semantic intent check** (`semantic.py`) | Your own messages are the trusted record of intent, since the agent can't write them. Each item name is embedded (all-MiniLM-L6-v2) and compared with everything you asked for. An item that doesn't resemble your request adds to the risk score, so the purchase waits for your approval, and the approval page says why. It only escalates; the gate still decides. |
-| **Out-of-band step-up** (`stepup.py`) | Borderline or risky payments pause until the user approves on a separate channel. The agent has no tool that can approve. |
+| **Out-of-band step-up** (`stepup.py`) | Borderline or risky payments pause until the user approves on a separate page that shows the items (with pictures), merchant, prices, total and the reason. The agent has no tool that can approve. |
 | **Audit log** (`audit.py`) | Every decision is written to a hash-chained, tamper-evident JSONL log. |
 | **Catalog snapshot** (`catalog.py`) | Product data comes from [Channel3](https://trychannel3.com) (or a static catalog for the offline demos). The gate only accepts offers the agent was actually shown, at the price and merchant shown, for 15 minutes. The agent can't invent a product, price or merchant. |
 | **PayPal client** (`paypal_client.py`) | Orders v2 (create, get, capture) with idempotency keys, sandbox only. |
@@ -132,7 +132,7 @@ While developing: `npm run dev` in `studio/` serves it at http://localhost:5173/
 
 ### Studio Agent Framework
 
-The Studio build includes the chat panel from AG Studio's Agent Framework: Studio's five built-in agents (Lead, Planning, Data, Page, Widget) plus a custom auditor agent (`studio/src/ai.ts`) that explains gate decisions from the audit tables and builds widgets on request. The model is reached through a local relay, `POST /api/llm`, so the key stays on the server. Open the chat panel from Studio's side panels (the panels are shown in **Edit layout** mode).
+The Studio build includes the chat panel from AG Studio's Agent Framework: Studio's five built-in agents (Lead, Planning, Data, Page, Widget) plus a custom auditor agent (`studio/src/ai.ts`) with read-only data tools that can add widgets and answer questions about the audit tables. The model is reached through a local relay, `POST /api/llm`, so the key stays on the server. Open the chat panel from Studio's side panels (the panels are shown in **Edit layout** mode). Free-tier model rate limits made multi-agent runs unreliable to record, so the chat panel is not shown in the demo video.
 
 ```bash
 # .env
@@ -211,7 +211,7 @@ This is a hackathon prototype and a research starting point, not a production pa
 - The risk score is rule-based (a fixed phrase list). A paraphrased injection can evade it; the deterministic gate is the real backstop.
 - Hardware enclave (TEE) attestation is a production design in the docs, not implemented here. In this prototype the gateway and agent share a process.
 - The mandate nonce store is in memory, so a gateway restart forgets used nonces (until the mandate expires).
-- The step-up page shows the order id, total and reason, but not the merchant or items.
+- The step-up page shows the order id, total, reason, the merchant and items along with their images but item names and pictures are written by the merchant, and approving has no login or WebAuthn confirmation.
 - The semantic check uses a fixed similarity floor (0.30) and only compares item names, not descriptions. With no user message or no item text yet, it adds nothing. It escalates to approval but never approves on its own.
 - The risk thresholds (warn 1.0, block 2.5) are initial values chosen from the attack scenarios, not tuned on a large dataset.
 

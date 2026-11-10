@@ -34,9 +34,7 @@ class IntentTracker:
         sim = self.similarity(text)
         if sim is None or sim >= self._floor:
             return 0.0
-        return min(
-            1.0, (self._floor - sim) / (self._floor / 2)
-        )
+        return min(1.0, (self._floor - sim) / (self._floor / 2))
 
 
 class MiniLM:

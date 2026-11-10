@@ -1,4 +1,4 @@
-"""Live end-to-end: Llama agent (Groq) -> AgentGuard gateway -> Channel3 data + PayPal sandbox.
+"""Live end-to-end: GPT-OSS 20B agent (Groq) -> AgentGuard gateway -> Channel3 data + PayPal sandbox.
 
   Put PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET, CHANNEL3_API_KEY, GROQ_API_KEY in a .env file (or export them).
   python -m scripts.run_agent --merchants nike.com,adidas.com --limit 150
@@ -295,7 +295,7 @@ def main():
         ),
         llm=GroqLlm(
             os.environ["GROQ_API_KEY"],
-            os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile"),
+            os.environ.get("GROQ_MODEL", "gpt-oss-20b"),
             on_wait=lambda s: print(f"  (Groq rate limit, waiting {s:.0f}s...)"),
         ),
         vault_token=os.environ["PAYPAL_VAULT_TOKEN"] if args.auto else None,

@@ -50,6 +50,7 @@ class Gateway:
         self._auto = vault_token is not None
         self._intent = intent
         self._auto_pending: dict = {}
+        self._details: dict = {}  # order id -> line items shown on the step-up page
 
     # -- helpers --------------------------------------------------------
     def _ctx(self) -> dict:
@@ -64,11 +65,29 @@ class Gateway:
     def _ratio(self, total) -> float:
         return float(total / Decimal(self._m.max_total)) if total else 0.0
 
+    def _line_items(self, items: list) -> list:
+        """What the user is approving, built from the gateway's own catalog snapshot (never from the agent).
+        Names and images are merchant-written and only displayed; merchant, price and quantity are what the gate used.
+        """
+        out = []
+        for item_id, qty in items:
+            e = self._catalog.get(item_id)
+            if e:
+                out.append(
+                    {
+                        "name": e.get("name") or item_id,
+                        "merchant": e["merchant"],
+                        "price": e["price"],
+                        "currency": e["currency"],
+                        "quantity": qty,
+                        "image": e.get("image"),
+                    }
+                )
+        return out
+
     def _create_request_id(self, items) -> str:
         key = json.dumps([self._m.nonce, sorted(items)], default=str)
-        return hashlib.sha256(key.encode()).hexdigest()[
-            :32
-        ]  # same order -> same id -> PayPal dedupes
+        return hashlib.sha256(key.encode()).hexdigest()[:32]
 
     # -- tools ----------------------------------------------------------
     def search_catalog(self, query: str) -> dict:
@@ -161,6 +180,7 @@ class Gateway:
             return {"ok": False, "error": "payment provider error"}
         self._gate.record_order(order["id"], d)
         self._orders[order["id"]] = None
+        self._details[order["id"]] = self._line_items(items)
         self._risk.update(attempted_ratio=self._ratio(d.total))
         return {
             "ok": True,
@@ -176,7 +196,9 @@ class Gateway:
         if d.verdict is Verdict.STEP_UP:
             sid = self._auto_pending.get(key)
             if sid is None:
-                sid = self._stepup.request(f"auto-{key[:8]}", d.total, d.reason)
+                sid = self._stepup.request(
+                    f"auto-{key[:8]}", d.total, d.reason, self._line_items(items)
+                )
                 self._auto_pending[key] = sid
                 self._audit.log(
                     "step_up_requested", request_id=sid, auto=True, items=items
@@ -282,7 +304,9 @@ class Gateway:
             return {"ok": False, "error": d.reason}
         if d.verdict is Verdict.STEP_UP:
             if sid is None:
-                sid = self._stepup.request(order_id, d.total, d.reason)
+                sid = self._stepup.request(
+                    order_id, d.total, d.reason, self._details.get(order_id)
+                )
                 self._orders[order_id] = sid
                 self._audit.log("step_up_requested", order_id=order_id, request_id=sid)
             return {"ok": False, "pending_step_up": sid}
