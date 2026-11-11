@@ -83,8 +83,7 @@ The user says "Buy me a mug." A scripted agent orders a $60 "Premium wellness bu
 - Sandbox PayPal and a fake provider do not reproduce real-world payment failures.
 - Small, hand-built workloads will not represent real shopping behaviour.
 
-## 5. Claims and citations to verify before using in a paper
+## 5. Related work and open items
 
-- A statistic that "over 70% of sophisticated multi-turn prompt injections appear benign in a single turn" came from an unsourced summary. **Do not cite it without finding the original source.**
-- **Progent** (privilege control for LLM agent tool calls) and **ToolSafe** (TS-Bench, TS-Guard, TS-Flow): confirm exact titles, authors, venues and arXiv ids from the papers themselves, and confirm the component names, before citing. Both are relevant related work: Progent for policy-based tool restriction, ToolSafe as a learned-guard baseline for RQ5.
-- Any claim about SCA / PSD2 compliance needs a review against the actual regulation.
+- **Progent** (policy-based privilege control for LLM agent tool calls) and **ToolSafe** (a tool-call safety benchmark and learned guardrail) are the closest related work. They have not been compared against yet; ToolSafe is the planned learned-guard baseline for RQ5. Titles, authors and venues will be confirmed from the papers before anything is cited.
+- No claim is made about regulatory compliance (for example SCA); the step-up flow has not been reviewed against any standard.
